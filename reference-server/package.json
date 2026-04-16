@@ -1,0 +1,11 @@
+{
+  "name": "@asp/reference-server",
+  "version": "0.1.0",
+  "description": "ASP reference MCP server",
+  "type": "module",
+  "main": "src/server.ts",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "ajv": "^8.17.0"
+  }
+}
