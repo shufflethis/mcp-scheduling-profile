@@ -1,0 +1,42 @@
+{
+  "query": {
+    "providerId": "google",
+    "dateRange": {
+      "start": "2026-05-01T00:00:00Z",
+      "end": "2026-05-03T23:59:59Z"
+    },
+    "duration": "PT30M",
+    "timezone": "Europe/Berlin"
+  },
+  "response": {
+    "providerId": "google",
+    "slots": [
+      {
+        "id": "slot-goog-001",
+        "start": "2026-05-01T09:00:00Z",
+        "end": "2026-05-01T09:30:00Z",
+        "providerId": "google",
+        "duration": "PT30M",
+        "status": "available"
+      },
+      {
+        "id": "slot-goog-002",
+        "start": "2026-05-01T14:00:00Z",
+        "end": "2026-05-01T14:30:00Z",
+        "providerId": "google",
+        "duration": "PT30M",
+        "status": "available"
+      },
+      {
+        "id": "slot-goog-003",
+        "start": "2026-05-02T10:00:00Z",
+        "end": "2026-05-02T10:30:00Z",
+        "providerId": "google",
+        "duration": "PT30M",
+        "status": "available"
+      }
+    ],
+    "truncated": false,
+    "queriedAt": "2026-04-30T18:00:00Z"
+  }
+}

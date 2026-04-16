@@ -1,0 +1,37 @@
+{
+  "intent": {
+    "slotId": "slot-goog-001",
+    "clientIntentId": "ci-20260501-abc123",
+    "attendees": [
+      { "name": "Max Weber", "email": "max@example.com" },
+      { "name": "Lisa Schmidt", "email": "lisa@example.com" }
+    ],
+    "subject": "Project Kickoff Meeting",
+    "notes": "Please prepare the Q2 roadmap deck."
+  },
+  "confirmation": {
+    "bookingId": "bk-goog-78901",
+    "clientIntentId": "ci-20260501-abc123",
+    "status": "confirmed",
+    "slot": {
+      "id": "slot-goog-001",
+      "start": "2026-05-01T09:00:00Z",
+      "end": "2026-05-01T09:30:00Z",
+      "providerId": "google",
+      "duration": "PT30M",
+      "status": "booked"
+    },
+    "provider": {
+      "id": "google",
+      "name": "Google Calendar"
+    },
+    "attendees": [
+      { "name": "Max Weber", "email": "max@example.com" },
+      { "name": "Lisa Schmidt", "email": "lisa@example.com" }
+    ],
+    "subject": "Project Kickoff Meeting",
+    "createdAt": "2026-04-30T18:05:00Z",
+    "updatedAt": "2026-04-30T18:05:00Z",
+    "providerRef": "https://www.googleapis.com/calendar/v3/calendars/primary/events/abc123"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "TODO": "This is a placeholder for the ChatGPT App manifest.",
+  "schema_version": "TODO(verify: current ChatGPT App manifest schema version)",
+  "name_for_human": "Scheduling Assistant",
+  "name_for_model": "scheduling_assistant",
+  "description_for_human": "Book, reschedule, and manage appointments across Google Calendar, Calendly, and CalDAV providers.",
+  "description_for_model": "Use this app to search for available time slots, book appointments, reschedule or cancel existing bookings, and export calendar events. Always call get_capabilities first to discover what the selected provider supports.",
+  "mcp": {
+    "TODO(verify)": "MCP configuration for ChatGPT Apps — schema TBD by OpenAI",
+    "server_url": "TODO",
+    "tools": [
+      "get_capabilities",
+      "search_availability",
+      "hold_slot",
+      "book_appointment",
+      "reschedule_appointment",
+      "cancel_appointment",
+      "get_booking",
+      "export_ics",
+      "subscribe_events"
+    ]
+  }
+}

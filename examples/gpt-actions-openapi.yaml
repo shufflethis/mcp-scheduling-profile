@@ -1,0 +1,740 @@
+# ASP GPT Actions Compatibility Wrapper
+# This is a compatibility wrapper for GPT Actions. The canonical surface is MCP (see RFC-0003).
+# A single GPT can use Apps OR Actions, not both.
+
+openapi: "3.1.0"
+info:
+  title: "Agentic Scheduling Protocol — GPT Actions Wrapper"
+  version: "0.1.0"
+  description: >
+    REST compatibility wrapper for the Agentic Scheduling Protocol (ASP).
+    This OpenAPI specification exposes the 9 ASP tools as REST endpoints,
+    enabling use via GPT Actions in ChatGPT. The canonical protocol surface
+    is MCP; this wrapper exists for environments that require an OpenAPI
+    interface. See RFC-0003 for the MCP tool definitions.
+  contact:
+    name: ASP Community
+  license:
+    name: MIT
+
+servers:
+  - url: https://asp.example.com/v1
+    description: ASP server (replace with your deployment URL)
+
+paths:
+  /capabilities/{providerId}:
+    get:
+      operationId: get_capabilities
+      summary: Discover provider capabilities
+      description: >
+        Returns the capability manifest for a given scheduling provider.
+        This must be called before any other operation to determine which
+        features the provider supports (e.g., holds, reschedule, webhooks).
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          description: Unique identifier of the scheduling provider (e.g., "google", "calendly", "caldav")
+          schema:
+            type: string
+            examples:
+              - "google"
+              - "calendly"
+              - "caldav"
+      responses:
+        "200":
+          description: Provider capabilities returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderCapabilities"
+        "404":
+          description: Provider not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ASPError"
+
+  /availability/search:
+    post:
+      operationId: search_availability
+      summary: Search for available time slots
+      description: >
+        Queries a provider for available time slots within a date range.
+        Returns a list of bookable slots matching the requested duration.
+        The response may be truncated if the provider imposes result limits.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AvailabilityQuery"
+      responses:
+        "200":
+          description: Available slots returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AvailabilityResponse"
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ASPError"
+        "404":
+          description: Provider not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ASPError"
+
+  /slots/{slotId}/hold:
+    post:
+      operationId: hold_slot
+      summary: Temporarily hold a time slot
+      description: >
+        Places a temporary hold on a time slot to prevent double-booking
+        while the user confirms. Not all providers support holds; check
+        capabilities.supports_hold first. Holds expire automatically
+        after the provider-defined TTL.
+      parameters:
+        - name: slotId
+          in: path
+          required: true
+          description: The unique identifier of the slot to hold
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HoldRequest"
+      responses:
+        "200":
+          description: Slot held successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HoldResponse"
+        "404":
+          description: Slot not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ASPError"
+        "409":
+          description: Slot already booked or held by another party
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ASPError"
+        "422":
+          description: Provider does not support holds
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ASPError"
+
+  /bookings:
+    post:
+      operationId: book_appointment
+      summary: Book an appointment
+      description: >
+        Creates a confirmed booking for a given slot. Requires a
+        client_intent_id for idempotency — if the same client_intent_id
+        is submitted twice, the server returns the existing booking
+        rather than creating a duplicate.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookingIntent"
+      responses:
+        "201":
+          description: Booking created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingConfirmation"
+        "400":
+          description: Invalid booking request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ASPError"
+        "409":
+          description: Slot no longer available or idempotent duplicate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingConfirmation"
+
+  /bookings/{bookingId}/reschedule:
+    patch:
+      operationId: reschedule_appointment
+      summary: Reschedule an existing booking
+      description: >
+        Moves an existing booking to a new time slot. The original booking
+        is cancelled and a new booking is created atomically. Requires
+        capabilities.supports_reschedule to be true.
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          description: The unique identifier of the booking to reschedule
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RescheduleRequest"
+      responses:
+        "200":
+          description: Booking rescheduled successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingConfirmation"
+        "404":
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ASPError"
+        "409":
+          description: New slot not available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ASPError"
+        "422":
+          description: Provider does not support reschedule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ASPError"
+
+  /bookings/{bookingId}/cancel:
+    post:
+      operationId: cancel_appointment
+      summary: Cancel an existing booking
+      description: >
+        Cancels a confirmed booking. The cancellation is permanent.
+        The server notifies the provider, which handles attendee
+        notifications according to its own policies.
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          description: The unique identifier of the booking to cancel
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CancelRequest"
+      responses:
+        "200":
+          description: Booking cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CancelResponse"
+        "404":
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ASPError"
+        "409":
+          description: Booking already cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ASPError"
+
+  /bookings/{bookingId}:
+    get:
+      operationId: get_booking
+      summary: Retrieve booking details
+      description: >
+        Returns the full details of an existing booking, including
+        current status, attendees, slot information, and provider
+        reference.
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          description: The unique identifier of the booking
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Booking details returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingConfirmation"
+        "404":
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ASPError"
+
+  /bookings/{bookingId}/export.ics:
+    get:
+      operationId: export_ics
+      summary: Export booking as ICS file
+      description: >
+        Returns the booking as an iCalendar (RFC 5545) .ics file.
+        This enables the user to import the appointment into any
+        calendar application.
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          description: The unique identifier of the booking to export
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ICS file returned
+          content:
+            text/calendar:
+              schema:
+                type: string
+                description: RFC 5545 iCalendar data
+        "404":
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ASPError"
+
+  /subscriptions:
+    post:
+      operationId: subscribe_events
+      summary: Subscribe to booking lifecycle events
+      description: >
+        Creates a webhook subscription to receive notifications about
+        booking lifecycle events (created, updated, cancelled).
+        Requires capabilities.supports_webhooks to be true.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscriptionRequest"
+      responses:
+        "201":
+          description: Subscription created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionResponse"
+        "400":
+          description: Invalid subscription request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ASPError"
+        "422":
+          description: Provider does not support webhooks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ASPError"
+
+components:
+  schemas:
+    ProviderCapabilities:
+      type: object
+      required:
+        - providerId
+        - name
+        - capabilities
+      properties:
+        providerId:
+          type: string
+          description: Unique identifier for the scheduling provider
+        name:
+          type: string
+          description: Human-readable provider name
+        capabilities:
+          type: object
+          properties:
+            supports_hold:
+              type: boolean
+              description: Whether the provider supports temporary slot holds
+            supports_reschedule:
+              type: boolean
+              description: Whether bookings can be moved to a different slot
+            supports_group_booking:
+              type: boolean
+              description: Whether the provider supports multi-attendee scheduling
+            supports_meeting_link:
+              type: boolean
+              description: Whether the provider can auto-generate video meeting links
+            supports_deposit:
+              type: boolean
+              description: Whether the provider supports deposit collection at booking time
+            supports_webhooks:
+              type: boolean
+              description: Whether the provider supports push event notifications
+            supports_round_robin:
+              type: boolean
+              description: Whether the provider supports round-robin host assignment
+            supports_resource_booking:
+              type: boolean
+              description: Whether the provider supports booking physical resources (rooms, equipment)
+            supports_free_busy:
+              type: boolean
+              description: Whether the provider exposes free/busy information
+            supports_ics_export:
+              type: boolean
+              description: Whether bookings can be exported as ICS files
+            supports_idempotent_writes:
+              type: boolean
+              description: Whether the provider supports idempotent write operations via client_intent_id
+
+    AvailabilityQuery:
+      type: object
+      required:
+        - providerId
+        - dateRange
+        - duration
+      properties:
+        providerId:
+          type: string
+          description: Provider to query for availability
+        dateRange:
+          type: object
+          required:
+            - start
+            - end
+          properties:
+            start:
+              type: string
+              format: date-time
+              description: Start of the search window (ISO 8601)
+            end:
+              type: string
+              format: date-time
+              description: End of the search window (ISO 8601)
+        duration:
+          type: string
+          description: Desired appointment duration in ISO 8601 duration format (e.g., PT30M, PT1H)
+        timezone:
+          type: string
+          description: IANA timezone identifier for interpreting the date range (e.g., Europe/Berlin)
+
+    AvailabilityResponse:
+      type: object
+      required:
+        - providerId
+        - slots
+        - truncated
+        - queriedAt
+      properties:
+        providerId:
+          type: string
+        slots:
+          type: array
+          items:
+            $ref: "#/components/schemas/Slot"
+        truncated:
+          type: boolean
+          description: True if the result set was truncated due to provider limits
+        queriedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the availability query was executed
+
+    Slot:
+      type: object
+      required:
+        - id
+        - start
+        - end
+        - providerId
+        - duration
+        - status
+      properties:
+        id:
+          type: string
+          description: Unique slot identifier
+        start:
+          type: string
+          format: date-time
+          description: Slot start time (ISO 8601)
+        end:
+          type: string
+          format: date-time
+          description: Slot end time (ISO 8601)
+        providerId:
+          type: string
+          description: Provider that owns this slot
+        duration:
+          type: string
+          description: Slot duration in ISO 8601 duration format
+        status:
+          type: string
+          enum:
+            - available
+            - held
+            - booked
+          description: Current status of the slot
+
+    HoldRequest:
+      type: object
+      properties:
+        clientIntentId:
+          type: string
+          description: Client-generated idempotency key for this hold operation
+
+    HoldResponse:
+      type: object
+      required:
+        - holdId
+        - slotId
+        - expiresAt
+        - status
+      properties:
+        holdId:
+          type: string
+          description: Unique identifier for the hold
+        slotId:
+          type: string
+          description: The slot being held
+        expiresAt:
+          type: string
+          format: date-time
+          description: When the hold automatically expires
+        status:
+          type: string
+          enum:
+            - held
+            - expired
+          description: Current hold status
+
+    BookingIntent:
+      type: object
+      required:
+        - slotId
+        - clientIntentId
+        - attendees
+        - subject
+      properties:
+        slotId:
+          type: string
+          description: The slot to book
+        clientIntentId:
+          type: string
+          description: Client-generated idempotency key. Resubmitting the same key returns the existing booking.
+        attendees:
+          type: array
+          items:
+            $ref: "#/components/schemas/Attendee"
+          description: List of meeting attendees
+        subject:
+          type: string
+          description: Meeting subject or title
+        notes:
+          type: string
+          description: Optional notes or agenda for the meeting
+
+    BookingConfirmation:
+      type: object
+      required:
+        - bookingId
+        - clientIntentId
+        - status
+        - slot
+        - provider
+        - attendees
+        - subject
+        - createdAt
+        - updatedAt
+      properties:
+        bookingId:
+          type: string
+          description: Server-generated unique booking identifier
+        clientIntentId:
+          type: string
+          description: The client-provided idempotency key
+        status:
+          type: string
+          enum:
+            - confirmed
+            - cancelled
+            - rescheduled
+          description: Current booking status
+        slot:
+          $ref: "#/components/schemas/Slot"
+        provider:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+        attendees:
+          type: array
+          items:
+            $ref: "#/components/schemas/Attendee"
+        subject:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        providerRef:
+          type: string
+          format: uri
+          description: Provider-specific reference URL for the booking
+
+    Attendee:
+      type: object
+      required:
+        - name
+        - email
+      properties:
+        name:
+          type: string
+          description: Attendee display name
+        email:
+          type: string
+          format: email
+          description: Attendee email address
+
+    RescheduleRequest:
+      type: object
+      required:
+        - newSlotId
+        - clientIntentId
+      properties:
+        newSlotId:
+          type: string
+          description: The new slot to move the booking to
+        clientIntentId:
+          type: string
+          description: Idempotency key for this reschedule operation
+        reason:
+          type: string
+          description: Optional reason for rescheduling
+
+    CancelRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          description: Optional cancellation reason
+        notifyAttendees:
+          type: boolean
+          default: true
+          description: Whether to send cancellation notifications to attendees
+
+    CancelResponse:
+      type: object
+      required:
+        - bookingId
+        - status
+        - cancelledAt
+      properties:
+        bookingId:
+          type: string
+        status:
+          type: string
+          enum:
+            - cancelled
+        cancelledAt:
+          type: string
+          format: date-time
+
+    SubscriptionRequest:
+      type: object
+      required:
+        - providerId
+        - callbackUrl
+        - events
+      properties:
+        providerId:
+          type: string
+          description: Provider to subscribe to
+        callbackUrl:
+          type: string
+          format: uri
+          description: URL to receive webhook notifications
+        events:
+          type: array
+          items:
+            type: string
+            enum:
+              - booking.created
+              - booking.updated
+              - booking.cancelled
+          description: Event types to subscribe to
+
+    SubscriptionResponse:
+      type: object
+      required:
+        - subscriptionId
+        - status
+        - expiresAt
+      properties:
+        subscriptionId:
+          type: string
+          description: Unique subscription identifier
+        status:
+          type: string
+          enum:
+            - active
+            - pending_verification
+        expiresAt:
+          type: string
+          format: date-time
+          description: When the subscription expires and must be renewed
+
+    ASPError:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code (e.g., PROVIDER_NOT_FOUND, SLOT_UNAVAILABLE)
+              enum:
+                - PROVIDER_NOT_FOUND
+                - SLOT_UNAVAILABLE
+                - SLOT_NOT_FOUND
+                - BOOKING_NOT_FOUND
+                - BOOKING_ALREADY_CANCELLED
+                - CAPABILITY_NOT_SUPPORTED
+                - INVALID_REQUEST
+                - HOLD_EXPIRED
+                - PROVIDER_ERROR
+              examples:
+                - "SLOT_UNAVAILABLE"
+            message:
+              type: string
+              description: Human-readable error description
+            details:
+              type: object
+              description: Optional additional error context
+              additionalProperties: true
