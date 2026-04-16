@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mcp-scheduling-profile.example/schemas/event.jscalendar.schema.json",
+  "title": "JSCalendar Event (Scheduling Profile)",
+  "description": "A constrained JSCalendar profile for appointment booking, based on RFC 8984 (JSCalendar: A JSON Representation of Calendar Data). This schema defines the subset of JSCalendar Event properties relevant to scheduling workflows.",
+  "type": "object",
+  "required": ["@type", "uid", "title", "start", "duration", "timeZone", "status"],
+  "properties": {
+    "@type": {
+      "type": "string",
+      "const": "Event",
+      "description": "JSCalendar object type. Must be 'Event' per RFC 8984 Section 5.2.1."
+    },
+    "uid": {
+      "type": "string",
+      "description": "Globally unique identifier for the event (RFC 8984 Section 4.1.2)."
+    },
+    "title": {
+      "type": "string",
+      "description": "Short summary of the event (RFC 8984 Section 5.3.1)."
+    },
+    "start": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Start date-time of the event in ISO 8601 format."
+    },
+    "duration": {
+      "type": "string",
+      "pattern": "^P(?:\\d+Y)?(?:\\d+M)?(?:\\d+W)?(?:\\d+D)?(?:T(?:\\d+H)?(?:\\d+M)?(?:\\d+S)?)?$",
+      "description": "Duration of the event in ISO 8601 format (RFC 8984 Section 5.3.3)."
+    },
+    "timeZone": {
+      "type": "string",
+      "description": "IANA timezone identifier for the event start time (RFC 8984 Section 5.3.2)."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["confirmed", "tentative", "cancelled"],
+      "description": "Status of the event (RFC 8984 Section 5.2.5)."
+    },
+    "participants": {
+      "type": "object",
+      "description": "Map of participants keyed by email address (RFC 8984 Section 4.4).",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["name", "kind", "roles"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Display name of the participant."
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["individual", "group", "resource", "location"],
+            "description": "The kind of participant (RFC 8984 Section 4.4.2)."
+          },
+          "roles": {
+            "type": "object",
+            "description": "Map of roles this participant has (e.g. attendee, owner, chair).",
+            "additionalProperties": {
+              "type": "boolean"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "locations": {
+      "type": "object",
+      "description": "Map of locations for the event, keyed by arbitrary identifier (RFC 8984 Section 4.3).",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Human-readable name of the location."
+          },
+          "description": {
+            "type": "string",
+            "description": "Additional details about the location."
+          },
+          "uri": {
+            "type": "string",
+            "format": "uri",
+            "description": "URI for the location (e.g. a video conferencing link)."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "description": {
+      "type": "string",
+      "description": "Longer free-text description of the event (RFC 8984 Section 5.3.4)."
+    },
+    "created": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the event was created."
+    },
+    "updated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the event was last modified."
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "@type": "Event",
+      "uid": "evt-a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "title": "Initial Consultation",
+      "start": "2026-04-20T09:00:00Z",
+      "duration": "PT30M",
+      "timeZone": "Europe/Berlin",
+      "status": "confirmed",
+      "participants": {
+        "max@example.com": {
+          "name": "Max Mustermann",
+          "kind": "individual",
+          "roles": {
+            "attendee": true
+          }
+        },
+        "dr.schmidt@example.com": {
+          "name": "Dr. Schmidt",
+          "kind": "individual",
+          "roles": {
+            "owner": true,
+            "chair": true
+          }
+        }
+      },
+      "locations": {
+        "online": {
+          "name": "Google Meet",
+          "uri": "https://meet.google.com/abc-defg-hij"
+        }
+      },
+      "description": "30-minute introductory call to discuss project scope.",
+      "created": "2026-04-16T12:05:00Z",
+      "updated": "2026-04-16T12:05:00Z"
+    },
+    {
+      "@type": "Event",
+      "uid": "evt-f9e8d7c6-b5a4-3210-fedc-ba0987654321",
+      "title": "Team Onboarding",
+      "start": "2026-05-01T08:00:00-05:00",
+      "duration": "PT1H",
+      "timeZone": "America/Mexico_City",
+      "status": "tentative",
+      "participants": {
+        "alice@example.com": {
+          "name": "Alice Johnson",
+          "kind": "individual",
+          "roles": {
+            "attendee": true
+          }
+        },
+        "bob@example.com": {
+          "name": "Bob Smith",
+          "kind": "individual",
+          "roles": {
+            "attendee": true
+          }
+        }
+      },
+      "locations": {
+        "room": {
+          "name": "Conference Room 3",
+          "description": "Building A, 2nd Floor"
+        }
+      }
+    }
+  ]
+}

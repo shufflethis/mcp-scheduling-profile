@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mcp-scheduling-profile.example/schemas/error.schema.json",
+  "title": "Structured Error Response",
+  "description": "Standardized error response for scheduling operations. Each error code indicates a specific failure mode, and the retryable flag tells the client whether the request may succeed on retry.",
+  "type": "object",
+  "required": ["code", "message", "retryable"],
+  "properties": {
+    "code": {
+      "type": "string",
+      "enum": [
+        "E_CAPABILITY_UNSUPPORTED",
+        "E_SLOT_UNAVAILABLE",
+        "E_HOLD_EXPIRED",
+        "E_IDEMPOTENCY_CONFLICT",
+        "E_PROVIDER_UNAVAILABLE",
+        "E_AUTH_REQUIRED",
+        "E_AUTH_SCOPE_INSUFFICIENT",
+        "E_VALIDATION",
+        "E_RATE_LIMITED"
+      ],
+      "description": "Machine-readable error code."
+    },
+    "message": {
+      "type": "string",
+      "description": "Human-readable error message."
+    },
+    "retryable": {
+      "type": "boolean",
+      "description": "Whether the client should retry this request."
+    },
+    "details": {
+      "type": "object",
+      "description": "Optional structured details about the error.",
+      "additionalProperties": true
+    },
+    "retryAfterSeconds": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Suggested wait time in seconds before retrying. Typically present for E_RATE_LIMITED."
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "code": "E_SLOT_UNAVAILABLE",
+      "message": "The requested slot slot-2026-04-20-0900 is no longer available.",
+      "retryable": false,
+      "details": {
+        "slotId": "slot-2026-04-20-0900",
+        "currentStatus": "booked"
+      }
+    },
+    {
+      "code": "E_RATE_LIMITED",
+      "message": "Too many requests. Please wait before retrying.",
+      "retryable": true,
+      "retryAfterSeconds": 30
+    },
+    {
+      "code": "E_CAPABILITY_UNSUPPORTED",
+      "message": "The provider does not support slot holds.",
+      "retryable": false,
+      "details": {
+        "capability": "supports_hold",
+        "providerId": "provider-simple-book"
+      }
+    },
+    {
+      "code": "E_AUTH_SCOPE_INSUFFICIENT",
+      "message": "The provided token lacks the 'bookings:write' scope required for this operation.",
+      "retryable": false,
+      "details": {
+        "requiredScopes": ["bookings:write"],
+        "presentScopes": ["bookings:read"]
+      }
+    }
+  ]
+}

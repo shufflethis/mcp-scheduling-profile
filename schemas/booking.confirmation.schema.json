@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mcp-scheduling-profile.example/schemas/booking.confirmation.schema.json",
+  "title": "Booking Confirmation",
+  "description": "Confirmation payload returned after a booking action (create, cancel, reschedule, or hold).",
+  "type": "object",
+  "required": ["bookingId", "clientIntentId", "status", "slot", "provider", "attendees", "subject", "createdAt", "updatedAt"],
+  "properties": {
+    "bookingId": {
+      "type": "string",
+      "description": "Unique identifier assigned to the booking by the provider."
+    },
+    "clientIntentId": {
+      "type": "string",
+      "description": "The idempotency key from the original booking intent."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["confirmed", "cancelled", "rescheduled", "held"],
+      "description": "Current status of the booking."
+    },
+    "slot": {
+      "$ref": "slot.schema.json",
+      "description": "The time slot associated with this booking."
+    },
+    "provider": {
+      "type": "object",
+      "description": "The scheduling provider that processed this booking.",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Provider identifier."
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable provider name."
+        }
+      },
+      "additionalProperties": false
+    },
+    "attendees": {
+      "type": "array",
+      "description": "List of attendees for the booking.",
+      "items": {
+        "type": "object",
+        "required": ["name", "email"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "subject": {
+      "type": "string",
+      "description": "Subject or title of the booked appointment."
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of when the booking was created."
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of the last update to this booking."
+    },
+    "providerRef": {
+      "type": "string",
+      "description": "Optional reference or deep link to the booking in the provider's native system."
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "bookingId": "bk-98765",
+      "clientIntentId": "intent-a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "status": "confirmed",
+      "slot": {
+        "id": "slot-2026-04-20-0900",
+        "start": "2026-04-20T09:00:00Z",
+        "end": "2026-04-20T09:30:00Z",
+        "providerId": "provider-acme-cal",
+        "duration": "PT30M",
+        "status": "booked"
+      },
+      "provider": {
+        "id": "provider-acme-cal",
+        "name": "Acme Calendar"
+      },
+      "attendees": [
+        {
+          "name": "Max Mustermann",
+          "email": "max@example.com"
+        }
+      ],
+      "subject": "Initial Consultation",
+      "createdAt": "2026-04-16T12:05:00Z",
+      "updatedAt": "2026-04-16T12:05:00Z",
+      "providerRef": "https://acme-cal.example.com/bookings/bk-98765"
+    },
+    {
+      "bookingId": "bk-11223",
+      "clientIntentId": "intent-f9e8d7c6-b5a4-3210-fedc-ba0987654321",
+      "status": "held",
+      "slot": {
+        "id": "slot-2026-05-01-0800",
+        "start": "2026-05-01T08:00:00-05:00",
+        "end": "2026-05-01T09:00:00-05:00",
+        "providerId": "provider-acme-cal",
+        "duration": "PT1H",
+        "status": "held"
+      },
+      "provider": {
+        "id": "provider-acme-cal",
+        "name": "Acme Calendar"
+      },
+      "attendees": [
+        {
+          "name": "Alice Johnson",
+          "email": "alice@example.com"
+        },
+        {
+          "name": "Bob Smith",
+          "email": "bob@example.com"
+        }
+      ],
+      "subject": "Onboarding Session",
+      "createdAt": "2026-04-16T14:32:00Z",
+      "updatedAt": "2026-04-16T14:32:00Z"
+    }
+  ]
+}

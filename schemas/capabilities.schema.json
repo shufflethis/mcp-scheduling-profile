@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mcp-scheduling-profile.example/schemas/capabilities.schema.json",
+  "title": "Provider Capabilities",
+  "description": "Declares the feature capabilities of a scheduling provider, allowing clients to adapt their behavior based on what the provider supports.",
+  "type": "object",
+  "required": [
+    "providerId",
+    "providerName",
+    "supports_hold",
+    "supports_reschedule",
+    "supports_group_booking",
+    "supports_meeting_link",
+    "supports_deposit",
+    "supports_webhooks",
+    "supports_round_robin",
+    "supports_resource_booking",
+    "supports_free_busy",
+    "supports_ics_export",
+    "supports_idempotent_writes"
+  ],
+  "properties": {
+    "providerId": {
+      "type": "string",
+      "description": "Unique identifier for the scheduling provider."
+    },
+    "providerName": {
+      "type": "string",
+      "description": "Human-readable name of the scheduling provider."
+    },
+    "supports_hold": {
+      "type": "boolean",
+      "description": "Whether the provider supports temporarily holding a slot before confirming."
+    },
+    "supports_reschedule": {
+      "type": "boolean",
+      "description": "Whether the provider supports rescheduling an existing booking to a new slot."
+    },
+    "supports_group_booking": {
+      "type": "boolean",
+      "description": "Whether the provider supports bookings with multiple attendees in a single slot."
+    },
+    "supports_meeting_link": {
+      "type": "boolean",
+      "description": "Whether the provider can auto-generate a video meeting link (e.g. Zoom, Google Meet)."
+    },
+    "supports_deposit": {
+      "type": "boolean",
+      "description": "Whether the provider supports collecting a deposit or payment at booking time."
+    },
+    "supports_webhooks": {
+      "type": "boolean",
+      "description": "Whether the provider can send webhook notifications for booking events."
+    },
+    "supports_round_robin": {
+      "type": "boolean",
+      "description": "Whether the provider supports round-robin assignment across multiple staff members."
+    },
+    "supports_resource_booking": {
+      "type": "boolean",
+      "description": "Whether the provider supports booking shared resources (rooms, equipment)."
+    },
+    "supports_free_busy": {
+      "type": "boolean",
+      "description": "Whether the provider exposes free/busy information without full slot details."
+    },
+    "supports_ics_export": {
+      "type": "boolean",
+      "description": "Whether the provider can export bookings as iCalendar (.ics) files."
+    },
+    "supports_idempotent_writes": {
+      "type": "boolean",
+      "description": "Whether the provider honors clientIntentId for idempotent booking writes."
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "providerId": "provider-acme-cal",
+      "providerName": "Acme Calendar",
+      "supports_hold": true,
+      "supports_reschedule": true,
+      "supports_group_booking": true,
+      "supports_meeting_link": true,
+      "supports_deposit": false,
+      "supports_webhooks": true,
+      "supports_round_robin": true,
+      "supports_resource_booking": false,
+      "supports_free_busy": true,
+      "supports_ics_export": true,
+      "supports_idempotent_writes": true
+    },
+    {
+      "providerId": "provider-simple-book",
+      "providerName": "SimpleBook",
+      "supports_hold": false,
+      "supports_reschedule": false,
+      "supports_group_booking": false,
+      "supports_meeting_link": false,
+      "supports_deposit": false,
+      "supports_webhooks": false,
+      "supports_round_robin": false,
+      "supports_resource_booking": false,
+      "supports_free_busy": false,
+      "supports_ics_export": false,
+      "supports_idempotent_writes": false
+    }
+  ]
+}

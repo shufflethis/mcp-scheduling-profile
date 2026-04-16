@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mcp-scheduling-profile.example/schemas/booking.intent.schema.json",
+  "title": "Booking Intent",
+  "description": "Represents a client's intent to book an appointment for a specific slot. The clientIntentId serves as an idempotency key to prevent duplicate bookings.",
+  "type": "object",
+  "required": ["slotId", "clientIntentId", "attendees", "subject"],
+  "properties": {
+    "slotId": {
+      "type": "string",
+      "description": "Identifier of the slot to book, as returned by an availability query."
+    },
+    "clientIntentId": {
+      "type": "string",
+      "description": "Client-generated idempotency key. Retried requests with the same key return the original result."
+    },
+    "attendees": {
+      "type": "array",
+      "description": "People attending the appointment.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "email"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Full name of the attendee."
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Email address of the attendee."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "subject": {
+      "type": "string",
+      "description": "Subject or title for the appointment."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional free-text notes for the appointment."
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Optional client-specific metadata to attach to the booking.",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "slotId": "slot-2026-04-20-0900",
+      "clientIntentId": "intent-a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "attendees": [
+        {
+          "name": "Max Mustermann",
+          "email": "max@example.com"
+        }
+      ],
+      "subject": "Initial Consultation"
+    },
+    {
+      "slotId": "slot-2026-05-01-0800",
+      "clientIntentId": "intent-f9e8d7c6-b5a4-3210-fedc-ba0987654321",
+      "attendees": [
+        {
+          "name": "Alice Johnson",
+          "email": "alice@example.com"
+        },
+        {
+          "name": "Bob Smith",
+          "email": "bob@example.com"
+        }
+      ],
+      "subject": "Onboarding Session",
+      "notes": "Please prepare the demo environment beforehand.",
+      "metadata": {
+        "crmDealId": "deal-42",
+        "source": "website-widget"
+      }
+    }
+  ]
+}
