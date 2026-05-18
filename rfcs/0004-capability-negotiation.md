@@ -1,4 +1,4 @@
-# ASP-0004: Capability Negotiation
+# ASP-0004: Provider Feature Discovery
 
 | Field    | Value            |
 |----------|------------------|
@@ -8,12 +8,13 @@
 
 ## Abstract
 
-This document specifies the capability negotiation mechanism for
-the Agentic Scheduling Profile (ASP).  Capability negotiation
-allows ASP clients to discover what a scheduling provider supports
-before invoking tools that depend on provider-specific features.
-This prevents silent degradation, reduces error rates, and enables
-graceful feature detection.
+This document specifies provider feature discovery for the Agentic
+Scheduling Profile (ASP).  ASP uses `get_capabilities` to let
+clients discover what a scheduling provider supports before invoking
+tools that depend on provider-specific features.  This mechanism is
+separate from MCP protocol capability negotiation, which determines
+server/client support for MCP features such as tools, resources,
+prompts, and UI extensions.
 
 ## Motivation
 
@@ -26,12 +27,12 @@ does not expose raw free-busy data.  A CalDAV server supports
 free-busy and ICS export but typically does not generate meeting
 links or support webhooks natively.
 
-Without capability negotiation, an LLM agent would attempt tool
-calls blindly and encounter failures at runtime.  This produces a
-poor user experience: the agent tries to hold a slot on a provider
+Without provider feature discovery, an LLM agent would attempt
+tool calls blindly and encounter failures at runtime.  This produces
+a poor user experience: the agent tries to hold a slot on a provider
 that does not support holds, gets an error, and must recover.
 
-Capability negotiation solves this.  The client calls
+Provider feature discovery solves this.  The client calls
 `get_capabilities` once per provider and receives a complete map
 of supported features.  The client then invokes only those tools
 that the provider supports.  The LLM host can include capability
@@ -39,18 +40,18 @@ information in its prompt context to guide tool selection.
 
 ## Specification
 
-### Capability Object
+### ProviderCapabilities Object
 
-The Capabilities object is defined in ASP-0002.  This section
+The ProviderCapabilities object is defined in ASP-0002.  This section
 provides the normative specification of each flag.
 
-A Capabilities object is a JSON object with exactly the following
-boolean fields.  All fields are REQUIRED.  Servers MUST NOT omit
-any field.  Servers MUST NOT add non-boolean fields to the
-Capabilities object at the top level.  Extension capabilities
-SHOULD be placed in a `metadata` object if needed.
+A ProviderCapabilities object is a JSON object with provider identity
+fields plus the boolean feature flags below.  All feature flags are
+REQUIRED.  Servers MUST NOT omit any feature flag.  Servers MUST NOT
+add non-boolean feature fields at the top level.  Extension
+capabilities SHOULD be placed in a `metadata` object if needed.
 
-### Capability Flag Definitions
+### Provider Feature Flag Definitions
 
 #### supports_hold
 
@@ -207,11 +208,11 @@ When `false`, clients MUST NOT call `export_ics`.
 When `true`, the provider guarantees that write operations
 (`book_appointment`, `reschedule_appointment`,
 `cancel_appointment`, `hold_slot`) are idempotent with respect
-to `client_intent_id`.  Replaying the same intent with the same
+to `clientIntentId`.  Replaying the same intent with the same
 parameters produces the same result.
 
 When `false`, the provider does not guarantee idempotency.
-Clients SHOULD still send `client_intent_id` (it is REQUIRED
+Clients SHOULD still send `clientIntentId` (it is REQUIRED
 by the tool schemas), but the server MAY ignore it.  Clients
 MUST implement their own duplicate detection logic when this
 flag is `false`.
@@ -224,29 +225,29 @@ flag is `false`.
    SHOULD cache the result for the duration of the session.
 
 2. **Server MUST declare honestly.**  A server MUST NOT claim a
-   capability it does not fully support.  Partial support MUST
+   provider feature it does not fully support.  Partial support MUST
    be declared as `false`.  A provider that supports holds only
    for certain appointment types MUST declare `supports_hold`
    as `false` and handle holds through provider-specific metadata.
 
-3. **Missing capability yields structured error.**  If a client
-   calls a tool that requires a capability the provider does not
+3. **Missing provider feature yields structured error.**  If a client
+   calls a tool that requires a feature the provider does not
    support, the server MUST return error code
    E_CAPABILITY_UNSUPPORTED (see ASP-0005).  The error MUST
-   include the name of the missing capability in the `details`
+   include the name of the missing provider feature in the `details`
    object.
 
 4. **Never silent degradation.**  A server MUST NOT silently
-   skip a requested operation because of a missing capability.
+   skip a requested operation because of a missing provider feature.
    It MUST return E_CAPABILITY_UNSUPPORTED.  The client (or the
    LLM host) can then decide how to proceed.
 
-5. **Capabilities are per-provider.**  A single ASP server MAY
-   host multiple providers with different capabilities.  Each
+5. **Provider capabilities are per-provider.**  A single ASP server MAY
+   host multiple providers with different provider capabilities.  Each
    call to `get_capabilities` returns the capabilities for a
    specific `providerId`.
 
-6. **Capabilities MAY change.**  Providers MAY gain or lose
+6. **Provider capabilities MAY change.**  Providers MAY gain or lose
    capabilities over time (e.g., a provider enables webhooks).
    Clients SHOULD re-fetch capabilities periodically in
    long-running sessions.  Servers SHOULD include a
@@ -342,12 +343,12 @@ Notes:
 - `supports_free_busy`: true.  CalDAV supports free-busy queries
   via the CALDAV:free-busy-query REPORT.
 
-### Capability-to-Tool Mapping
+### Provider-Feature-to-Tool Mapping
 
-For reference, this table shows which capabilities gate which
+For reference, this table shows which provider features gate which
 tools.
 
-| Capability                  | Gated Tool(s)              |
+| Provider Feature            | Gated Tool(s)              |
 |-----------------------------|----------------------------|
 | `supports_hold`             | `hold_slot`                |
 | `supports_reschedule`       | `reschedule_appointment`   |
@@ -365,10 +366,10 @@ tools.
 
 ### Why Booleans and Not Feature Versions?
 
-Boolean flags are the simplest possible negotiation mechanism.
+Boolean flags are the simplest possible discovery mechanism.
 They answer "can you do this?" with yes or no.  Versioned
 capabilities (e.g., `hold: 2`) add complexity without clear
-benefit at this stage.  If a capability needs versioning in the
+benefit at this stage.  If a provider feature needs versioning in the
 future, it can be expressed as a new flag (e.g.,
 `supports_hold_v2`).
 
@@ -383,14 +384,14 @@ declaration of every flag eliminates this class of bugs.
 
 A single ASP server might front multiple providers (e.g., a
 multi-calendar aggregator).  Google Calendar and a CalDAV server
-have different capabilities.  Per-provider capabilities allow
+have different capabilities.  Per-provider feature flags allow
 accurate representation in this scenario.
 
 ### Why Not Auto-Detect from Tool Calls?
 
 Auto-detection (try it and see if it fails) wastes tokens, creates
 a poor user experience, and introduces race conditions.  Explicit
-capability negotiation is cheaper and more reliable.
+provider feature discovery is cheaper and more reliable.
 
 ## Security Considerations
 

@@ -1,4 +1,4 @@
-/** Core types for the Agentic Scheduling Protocol */
+/** Core types for the Agentic Scheduling Profile */
 
 export interface Slot {
   id: string;

@@ -79,7 +79,8 @@ schema for completeness.
 
 3. **Retryable means safe to retry.**  When `retryable` is `true`,
    the client MAY retry the identical request.  The server MUST
-   handle retries correctly (idempotently for write operations).
+   handle retries correctly (idempotently for booking lifecycle
+   writes and by deduplicating subscription writes).
    When `retryable` is `false`, retrying the identical request
    will produce the same error.
 
@@ -226,12 +227,12 @@ for confirmation before proceeding.
 |------------------|-------|
 | Code             | `E_IDEMPOTENCY_CONFLICT` |
 | Retryable        | No |
-| When to raise    | The `client_intent_id` was already used with different parameters. |
+| When to raise    | The `clientIntentId` was already used with different parameters. |
 
 **Client Guidance:**
 
 This is a client error.  The client MUST generate a new
-`client_intent_id` for the new request.  The client MUST NOT
+`clientIntentId` for the new request.  The client MUST NOT
 reuse intent ids across logically different operations.
 
 **Details Schema:**
@@ -240,7 +241,7 @@ reuse intent ids across logically different operations.
 {
   "clientIntentId": "intent-a1b2c3d4",
   "originalTool": "book_appointment",
-  "suggestion": "Generate a new client_intent_id for this request."
+  "suggestion": "Generate a new clientIntentId for this request."
 }
 ```
 
@@ -249,12 +250,12 @@ reuse intent ids across logically different operations.
 ```json
 {
   "code": "E_IDEMPOTENCY_CONFLICT",
-  "message": "This client_intent_id was already used with different parameters.",
+  "message": "This clientIntentId was already used with different parameters.",
   "retryable": false,
   "details": {
     "clientIntentId": "intent-a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     "originalTool": "book_appointment",
-    "suggestion": "Generate a new client_intent_id for this request."
+    "suggestion": "Generate a new clientIntentId for this request."
   }
 }
 ```

@@ -1,7 +1,7 @@
 {
   "name": "@asp/scheduling-profile",
   "version": "0.1.0",
-  "description": "Agentic Scheduling Protocol — an open MCP profile for appointment booking",
+  "description": "Agentic Scheduling Profile — an open MCP profile for appointment booking",
   "type": "module",
   "license": "Apache-2.0",
   "scripts": {

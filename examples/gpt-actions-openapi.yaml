@@ -4,10 +4,10 @@
 
 openapi: "3.1.0"
 info:
-  title: "Agentic Scheduling Protocol — GPT Actions Wrapper"
+  title: "Agentic Scheduling Profile — GPT Actions Wrapper"
   version: "0.1.0"
   description: >
-    REST compatibility wrapper for the Agentic Scheduling Protocol (ASP).
+    REST compatibility wrapper for the Agentic Scheduling Profile (ASP).
     This OpenAPI specification exposes the 9 ASP tools as REST endpoints,
     enabling use via GPT Actions in ChatGPT. The canonical protocol surface
     is MCP; this wrapper exists for environments that require an OpenAPI
@@ -15,7 +15,7 @@ info:
   contact:
     name: ASP Community
   license:
-    name: MIT
+    name: Apache-2.0
 
 servers:
   - url: https://asp.example.com/v1
@@ -143,7 +143,7 @@ paths:
       summary: Book an appointment
       description: >
         Creates a confirmed booking for a given slot. Requires a
-        client_intent_id for idempotency — if the same client_intent_id
+        clientIntentId for idempotency — if the same clientIntentId
         is submitted twice, the server returns the existing booking
         rather than creating a duplicate.
       requestBody:
@@ -403,7 +403,7 @@ components:
               description: Whether bookings can be exported as ICS files
             supports_idempotent_writes:
               type: boolean
-              description: Whether the provider supports idempotent write operations via client_intent_id
+              description: Whether the provider supports idempotent write operations via clientIntentId
 
     AvailabilityQuery:
       type: object
@@ -718,19 +718,19 @@ components:
           properties:
             code:
               type: string
-              description: Machine-readable error code (e.g., PROVIDER_NOT_FOUND, SLOT_UNAVAILABLE)
+              description: Machine-readable error code (e.g., E_PROVIDER_UNAVAILABLE, E_SLOT_UNAVAILABLE)
               enum:
-                - PROVIDER_NOT_FOUND
-                - SLOT_UNAVAILABLE
-                - SLOT_NOT_FOUND
-                - BOOKING_NOT_FOUND
-                - BOOKING_ALREADY_CANCELLED
-                - CAPABILITY_NOT_SUPPORTED
-                - INVALID_REQUEST
-                - HOLD_EXPIRED
-                - PROVIDER_ERROR
+                - E_CAPABILITY_UNSUPPORTED
+                - E_PROVIDER_UNAVAILABLE
+                - E_SLOT_UNAVAILABLE
+                - E_HOLD_EXPIRED
+                - E_IDEMPOTENCY_CONFLICT
+                - E_AUTH_REQUIRED
+                - E_AUTH_SCOPE_INSUFFICIENT
+                - E_VALIDATION
+                - E_RATE_LIMITED
               examples:
-                - "SLOT_UNAVAILABLE"
+                - "E_SLOT_UNAVAILABLE"
             message:
               type: string
               description: Human-readable error description

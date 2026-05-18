@@ -1,6 +1,6 @@
 # ASP Reference MCP Server
 
-A minimal reference MCP server implementing the **Agentic Scheduling Protocol (ASP)** tool profile.
+A minimal reference MCP server implementing the **Agentic Scheduling Profile (ASP)** tool surface.
 
 ## Overview
 

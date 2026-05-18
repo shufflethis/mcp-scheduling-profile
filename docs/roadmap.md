@@ -1,6 +1,6 @@
 # ASP Roadmap
 
-Phase-based roadmap for the Agentic Scheduling Protocol project.
+Phase-based roadmap for the Agentic Scheduling Profile project.
 
 ---
 
@@ -39,8 +39,8 @@ Phase-based roadmap for the Agentic Scheduling Protocol project.
   - ICS export via events.get (iCalendar format)
 - [ ] End-to-end integration tests (search -> hold -> book -> reschedule -> cancel)
 - [ ] Schema validation test suite (ajv-based)
-- [ ] ChatGPT App manifest (once OpenAI publishes final schema)
-- [ ] ChatGPT App prototype submission (if MCP support is available)
+- [ ] ChatGPT App configuration for the current Apps SDK submission flow
+- [ ] ChatGPT App prototype tested through Developer Mode
 - [ ] Whitepaper figures (architecture diagram, sequence diagram, etc.)
 - [ ] Latency benchmarking (target: <100ms overhead per operation)
 
@@ -65,7 +65,7 @@ Phase-based roadmap for the Agentic Scheduling Protocol project.
   - Cancel via DELETE
   - ICS export (native format)
 - [ ] Multi-provider demo: book via Google, view via CalDAV
-- [ ] Capability negotiation end-to-end tests
+- [ ] Provider feature discovery end-to-end tests
 - [ ] Error handling test suite
 - [ ] Provider capability matrix verification against live APIs
 - [ ] Documentation: adapter development guide
@@ -122,7 +122,7 @@ Phase-based roadmap for the Agentic Scheduling Protocol project.
 | Phase | Estimated Duration | Dependencies |
 |---|---|---|
 | Phase 1 | Complete | -- |
-| Phase 2 | 6-8 weeks | Google Calendar API access, OpenAI ChatGPT App schema |
+| Phase 2 | 6-8 weeks | Google Calendar API access, current Apps SDK submission requirements |
 | Phase 3 | 8-12 weeks | Phase 2 complete, Calendly API access |
 | Phase 4 | 8-12 weeks | Phase 3 complete |
 | Phase 5 | Ongoing | Phase 4 complete, community adoption |

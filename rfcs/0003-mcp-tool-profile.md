@@ -18,7 +18,8 @@ complete interface surface that ASP servers expose to LLM hosts.
 
 MCP (Model Context Protocol) defines how LLM hosts discover and
 invoke tools.  ASP defines which tools exist for scheduling and
-how they behave.  Without a fixed tool profile, every scheduling
+how they behave.  ASP is therefore a profile on top of MCP, not a
+replacement protocol.  Without a fixed tool profile, every scheduling
 MCP server would invent its own tool names, schemas, and semantics.
 LLM hosts would need per-server prompt engineering.
 
@@ -38,23 +39,26 @@ them.  Clients SHOULD rely on them.
    tool calls.  This keeps tool descriptions short and unambiguous
    for LLM function calling.
 
-2. **Reads and writes are strictly separated.**  Read tools (R)
-   have no side effects and are safe to retry without limit.
-   Write tools (W) modify state and require idempotency keys.
+2. **Reads and state-changing tools are strictly separated.**  Read
+   tools (R) have no side effects and are safe to retry without
+   limit.  State-changing tools (W) modify provider or subscription
+   state and require host-side user confirmation.
 
-3. **Every write is idempotent.**  Every write tool accepts a
-   `client_intent_id` parameter.  Replaying the same
-   `client_intent_id` with identical parameters MUST return the
-   same result without creating duplicate state.
+3. **Booking lifecycle writes are idempotent.**  Booking lifecycle
+   write tools accept a `clientIntentId` parameter.  Replaying the
+   same `clientIntentId` with identical parameters MUST return the
+   same result without creating duplicate state.  Subscription writes
+   MUST deduplicate identical subscription requests.
 
-4. **Every write returns BookingConfirmation.**  Write tools MUST
-   return a BookingConfirmation object (ASP-0002) as the top-level
-   response, even for cancellations.
+4. **Booking lifecycle writes return BookingConfirmation.**  Booking
+   lifecycle write tools MUST return a BookingConfirmation object
+   (ASP-0002) as the top-level response, even for cancellations.
+   Subscription tools return subscription objects.
 
-5. **Every tool declares required capabilities.**  The tool
-   definition includes which capability flags (ASP-0004) the
-   provider MUST support.  If the provider lacks a required
-   capability, the server MUST reject the call with
+5. **Every tool declares required provider features.**  The tool
+   definition includes which provider capability flags (ASP-0004)
+   the provider MUST support.  If the provider lacks a required
+   feature, the server MUST reject the call with
    E_CAPABILITY_UNSUPPORTED.
 
 6. **Errors are structured.**  Every error response MUST conform
@@ -230,7 +234,7 @@ Returns an AvailabilityResponse object (ASP-0002).
 | Purpose              | Soft-reserve a slot before the user confirms. |
 | Read/Write           | W |
 | Required Capabilities | `supports_hold` |
-| Idempotency          | Yes.  Same `client_intent_id` + same `slotId` = same hold. |
+| Idempotency          | Yes.  Same `clientIntentId` + same `slotId` = same hold. |
 
 **Input Schema:**
 
@@ -242,7 +246,7 @@ Returns an AvailabilityResponse object (ASP-0002).
       "type": "string",
       "description": "The slot to hold."
     },
-    "client_intent_id": {
+    "clientIntentId": {
       "type": "string",
       "description": "Idempotency key.  UUIDv4 recommended."
     },
@@ -251,7 +255,7 @@ Returns an AvailabilityResponse object (ASP-0002).
       "description": "How long to hold (ISO 8601 duration). Server MAY cap this. Default: PT5M."
     }
   },
-  "required": ["slotId", "client_intent_id"]
+  "required": ["slotId", "clientIntentId"]
 }
 ```
 
@@ -284,10 +288,10 @@ BookingConfirmation metadata indicating when the hold expires.
     "type": "object",
     "properties": {
       "slotId": { "type": "string", "description": "Slot to hold." },
-      "client_intent_id": { "type": "string", "description": "Idempotency key (UUIDv4 recommended)." },
+      "clientIntentId": { "type": "string", "description": "Idempotency key (UUIDv4 recommended)." },
       "holdDuration": { "type": "string", "description": "Requested hold duration (ISO 8601). Server may cap." }
     },
-    "required": ["slotId", "client_intent_id"]
+    "required": ["slotId", "clientIntentId"]
   }
 }
 ```
@@ -302,7 +306,7 @@ BookingConfirmation metadata indicating when the hold expires.
 | Purpose              | Confirm a booking for a specific slot. |
 | Read/Write           | W |
 | Required Capabilities | None (core tool, always available). |
-| Idempotency          | Yes.  Same `client_intent_id` + same parameters = same booking. |
+| Idempotency          | Yes.  Same `clientIntentId` + same parameters = same booking. |
 
 **Input Schema:**
 
@@ -314,7 +318,7 @@ BookingConfirmation metadata indicating when the hold expires.
       "type": "string",
       "description": "The slot to book."
     },
-    "client_intent_id": {
+    "clientIntentId": {
       "type": "string",
       "description": "Idempotency key.  UUIDv4 recommended."
     },
@@ -345,7 +349,7 @@ BookingConfirmation metadata indicating when the hold expires.
       "additionalProperties": true
     }
   },
-  "required": ["slotId", "client_intent_id", "attendees", "subject"]
+  "required": ["slotId", "clientIntentId", "attendees", "subject"]
 }
 ```
 
@@ -375,7 +379,7 @@ Returns a BookingConfirmation with `status` = `"confirmed"`.
     "type": "object",
     "properties": {
       "slotId": { "type": "string", "description": "Slot to book." },
-      "client_intent_id": { "type": "string", "description": "Idempotency key (UUIDv4 recommended)." },
+      "clientIntentId": { "type": "string", "description": "Idempotency key (UUIDv4 recommended)." },
       "attendees": {
         "type": "array",
         "items": {
@@ -390,7 +394,7 @@ Returns a BookingConfirmation with `status` = `"confirmed"`.
       "notes": { "type": "string", "description": "Optional notes." },
       "metadata": { "type": "object", "description": "Optional metadata.", "additionalProperties": true }
     },
-    "required": ["slotId", "client_intent_id", "attendees", "subject"]
+    "required": ["slotId", "clientIntentId", "attendees", "subject"]
   }
 }
 ```
@@ -405,7 +409,7 @@ Returns a BookingConfirmation with `status` = `"confirmed"`.
 | Purpose              | Change the time of an existing booking. |
 | Read/Write           | W |
 | Required Capabilities | `supports_reschedule` |
-| Idempotency          | Yes.  Same `client_intent_id` + same parameters = same reschedule. |
+| Idempotency          | Yes.  Same `clientIntentId` + same parameters = same reschedule. |
 
 **Input Schema:**
 
@@ -421,7 +425,7 @@ Returns a BookingConfirmation with `status` = `"confirmed"`.
       "type": "string",
       "description": "The new slot to move the booking to."
     },
-    "client_intent_id": {
+    "clientIntentId": {
       "type": "string",
       "description": "Idempotency key.  UUIDv4 recommended."
     },
@@ -430,7 +434,7 @@ Returns a BookingConfirmation with `status` = `"confirmed"`.
       "description": "Optional reason for rescheduling."
     }
   },
-  "required": ["bookingId", "newSlotId", "client_intent_id"]
+  "required": ["bookingId", "newSlotId", "clientIntentId"]
 }
 ```
 
@@ -462,10 +466,10 @@ The `slot` field reflects the new slot.
     "properties": {
       "bookingId": { "type": "string", "description": "Existing booking to reschedule." },
       "newSlotId": { "type": "string", "description": "New slot to move the booking to." },
-      "client_intent_id": { "type": "string", "description": "Idempotency key (UUIDv4 recommended)." },
+      "clientIntentId": { "type": "string", "description": "Idempotency key (UUIDv4 recommended)." },
       "reason": { "type": "string", "description": "Optional reason for rescheduling." }
     },
-    "required": ["bookingId", "newSlotId", "client_intent_id"]
+    "required": ["bookingId", "newSlotId", "clientIntentId"]
   }
 }
 ```
@@ -480,7 +484,7 @@ The `slot` field reflects the new slot.
 | Purpose              | Cancel an existing booking. |
 | Read/Write           | W |
 | Required Capabilities | None (core tool, always available). |
-| Idempotency          | Yes.  Same `client_intent_id` + same `bookingId` = same cancellation. |
+| Idempotency          | Yes.  Same `clientIntentId` + same `bookingId` = same cancellation. |
 
 **Input Schema:**
 
@@ -492,7 +496,7 @@ The `slot` field reflects the new slot.
       "type": "string",
       "description": "The booking to cancel."
     },
-    "client_intent_id": {
+    "clientIntentId": {
       "type": "string",
       "description": "Idempotency key.  UUIDv4 recommended."
     },
@@ -501,7 +505,7 @@ The `slot` field reflects the new slot.
       "description": "Optional reason for cancellation."
     }
   },
-  "required": ["bookingId", "client_intent_id"]
+  "required": ["bookingId", "clientIntentId"]
 }
 ```
 
@@ -529,10 +533,10 @@ Returns a BookingConfirmation with `status` = `"cancelled"`.
     "type": "object",
     "properties": {
       "bookingId": { "type": "string", "description": "Booking to cancel." },
-      "client_intent_id": { "type": "string", "description": "Idempotency key (UUIDv4 recommended)." },
+      "clientIntentId": { "type": "string", "description": "Idempotency key (UUIDv4 recommended)." },
       "reason": { "type": "string", "description": "Optional cancellation reason." }
     },
-    "required": ["bookingId", "client_intent_id"]
+    "required": ["bookingId", "clientIntentId"]
   }
 }
 ```
@@ -668,9 +672,9 @@ the `bookingId`.
 |----------------------|-------|
 | Name                 | `subscribe_events` |
 | Purpose              | Subscribe to changes in a provider's bookings. |
-| Read/Write           | R |
+| Read/Write           | W |
 | Required Capabilities | `supports_webhooks` |
-| Idempotency          | N/A (read-only; duplicate subscriptions are deduplicated by server). |
+| Idempotency          | Duplicate subscriptions SHOULD be deduplicated by server. |
 
 **Input Schema:**
 
@@ -756,7 +760,7 @@ Returns an object with:
 | 6 | `cancel_appointment`     | W   | None                        | Yes        |
 | 7 | `get_booking`            | R   | None                        | N/A        |
 | 8 | `export_ics`             | R   | `supports_ics_export`       | N/A        |
-| 9 | `subscribe_events`       | R   | `supports_webhooks`         | N/A        |
+| 9 | `subscribe_events`       | W   | `supports_webhooks`         | Deduped    |
 
 ### Note on GPT Actions Compatibility
 
@@ -802,7 +806,7 @@ go directly from "available" to "booked."  Making hold_slot
 optional (gated by `supports_hold`) ensures ASP works with simple
 providers while offering the feature to those that support it.
 
-### Why client_intent_id on Every Write?
+### Why clientIntentId on Every Write?
 
 See ASP-0002, BookingIntent rationale.  Network failures are
 common in agentic workflows where multiple tool calls happen in
@@ -840,7 +844,7 @@ before delivering events.
   Scheduling Core Object Specification (iCalendar)", RFC 5545,
   September 2009.
 - [ASP-0002] ASP Working Group, "Object Model", ASP-0002, 2026.
-- [ASP-0004] ASP Working Group, "Capability Negotiation",
+- [ASP-0004] ASP Working Group, "Provider Feature Discovery",
   ASP-0004, 2026.
 - [ASP-0005] ASP Working Group, "Error Model", ASP-0005, 2026.
 - [ASP-0006] ASP Working Group, "Security and Authorization",

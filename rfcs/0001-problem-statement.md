@@ -20,11 +20,11 @@ exposes scheduling capabilities as MCP tools.
 
 ### The Agentic Commerce Precedent
 
-Shopify's Agentic Commerce Protocol (ACP) demonstrates that
-domain-specific profiles on top of general agent protocols are
-both feasible and necessary.  ACP gives LLM agents a structured
-way to browse products, add to cart, and check out.  No equivalent
-exists for scheduling.
+OpenAI and Stripe's Agentic Commerce Protocol (ACP) demonstrates
+that domain-specific interfaces for agentic commerce are both
+feasible and necessary.  ACP gives AI agents a structured way to
+participate in product and checkout flows.  No equivalent MCP
+profile exists for scheduling.
 
 Scheduling is at least as universal as commerce.  Every business
 with appointments, every professional with a calendar, every
@@ -66,7 +66,7 @@ user agents.
 
 What it does NOT solve: agentic flow.  iTIP assumes human-driven
 calendar applications exchanging messages.  It has no concept of
-tool invocation, capability negotiation, idempotency keys, or
+tool invocation, provider feature discovery, idempotency keys, or
 structured error responses.  An LLM host cannot natively speak
 iTIP.
 
@@ -118,7 +118,7 @@ semantics exist (iTIP).  Availability declaration exists (RFC 7953).
 
 What does NOT exist is an agentic orchestration layer: a profile
 that exposes scheduling as a set of well-defined tools with
-structured inputs, structured outputs, capability negotiation,
+structured inputs, structured outputs, provider feature discovery,
 idempotency, and error handling — designed for LLM hosts.
 
 ## Specification
@@ -131,7 +131,7 @@ the entire ASP effort.
 
 1. Existing calendar standards solve representation and parts of scheduling, but NOT agentic orchestration inside LLM hosts.
 
-2. MCP is the correct transport layer for agentic scheduling in ChatGPT, because OpenAI has positioned MCP as the standard for ChatGPT Apps.
+2. MCP is the correct integration surface for agentic scheduling in ChatGPT and other MCP-capable hosts.
 
 3. JSCalendar should be the canonical internal object model. iCalendar/ICS remains the import/export boundary.
 
@@ -148,7 +148,7 @@ Concretely:
   invoke to perform scheduling operations.
 - ASP defines an object model (see ASP-0002) based on JSCalendar
   that all tools consume and produce.
-- ASP defines a capability negotiation mechanism (see ASP-0004)
+- ASP defines provider feature discovery (see ASP-0004)
   that lets clients discover what a given provider supports.
 - ASP defines an error model (see ASP-0005) with structured,
   machine-readable error codes.
@@ -177,7 +177,7 @@ identity federation beyond what OAuth provides.
 
 The first version of ASP MUST support:
 
-- Capability discovery
+- Provider feature discovery
 - Availability search
 - Slot hold (where supported by provider)
 - Booking confirmation
@@ -206,13 +206,13 @@ The first version of ASP MUST NOT attempt to address:
 2. **Reads and writes are separate.**  Read tools have no side
    effects.  Write tools always return a confirmation object.
 
-3. **Idempotency by default.**  Every write tool accepts a
-   client_intent_id.  Replaying the same intent_id with the same
-   parameters MUST produce the same result.
+3. **Idempotency by default.**  Every booking lifecycle write tool
+   accepts a clientIntentId.  Replaying the same intentId with the
+   same parameters MUST produce the same result.
 
-4. **Capability-first.**  Clients MUST discover capabilities
-   before invoking tools.  Servers MUST reject tool calls that
-   require unsupported capabilities.
+4. **Provider-feature-first.**  Clients MUST discover provider
+   capabilities before invoking tools.  Servers MUST reject tool
+   calls that require unsupported provider features.
 
 5. **Structured errors.**  Every error is machine-readable with
    a code, message, retryable flag, and details object.
@@ -259,15 +259,15 @@ extensions, which is unrealistic for SaaS scheduling providers
 like Calendly or Cal.com.  ASP abstracts over the provider's
 native API.
 
-### Why Capability Negotiation?
+### Why Provider Feature Discovery?
 
 Calendar providers differ wildly in what they support.  Google
 Calendar supports meeting links but not deposits.  Calendly
 supports round-robin but not free-busy queries against a raw
 calendar.  CalDAV supports free-busy but not meeting links.
 
-Without capability negotiation, clients would have to guess what
-works and handle failures ad hoc.  With capability negotiation,
+Without provider feature discovery, clients would have to guess what
+works and handle failures ad hoc.  With provider feature discovery,
 clients discover supported features up front and degrade
 gracefully.
 
@@ -299,5 +299,5 @@ normative requirements.
   RFC 7953, August 2016.
 - [RFC 8984] Jenkins, N., and R. Stepanek, "JSCalendar: A JSON
   Representation of Calendar Data", RFC 8984, July 2021.
-- [ACP] Shopify, "Agentic Commerce Protocol", 2025.
+- [ACP] OpenAI and Stripe, "Agentic Commerce Protocol", 2025.
 - [MCP] Anthropic, "Model Context Protocol Specification", 2024.

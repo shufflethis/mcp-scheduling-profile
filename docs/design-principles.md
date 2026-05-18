@@ -1,6 +1,6 @@
 # ASP Design Principles
 
-The Agentic Scheduling Protocol is built on ten design principles. Each principle has consequences for how the protocol is specified, implemented, and consumed by LLM hosts.
+The Agentic Scheduling Profile is built on ten design principles. Each principle has consequences for how the profile is specified, implemented, and consumed by LLM hosts.
 
 ---
 
@@ -32,14 +32,14 @@ The Agentic Scheduling Protocol is built on ten design principles. Each principl
 
 ---
 
-## 3. Idempotent Writes (client_intent_id)
+## 3. Idempotent Booking Writes (clientIntentId)
 
-**Principle:** Every write operation accepts a `client_intent_id`. Resubmitting the same ID returns the existing result without side effects.
+**Principle:** Every booking lifecycle write operation accepts a `clientIntentId`. Resubmitting the same ID returns the existing result without side effects. Subscription writes are deduplicated by provider, event set, and callback URL.
 
 **Rationale:** Agentic systems are inherently retry-prone. The LLM may re-execute a tool call after a timeout, the user may re-confirm an action, or the host may replay a conversation turn. Without idempotency, these retries create duplicate bookings — a severe user-facing failure.
 
 **Consequences:**
-- The server must maintain a durable mapping from `client_intent_id` to operation results.
+- The server must maintain a durable mapping from `clientIntentId` to booking lifecycle operation results.
 - The client (LLM host) is responsible for generating unique IDs — typically UUIDs.
 - Idempotency windows must be defined (how long does the server remember an ID?).
 - The 409 Conflict response for duplicate IDs includes the original result, not an error.
@@ -48,14 +48,14 @@ The Agentic Scheduling Protocol is built on ten design principles. Each principl
 
 ## 4. Capability-Gated Operations
 
-**Principle:** Provider-specific features are discovered through `get_capabilities` before use. Operations that require unsupported capabilities return a structured error.
+**Principle:** Provider-specific features are discovered through `get_capabilities` before use. Operations that require unsupported provider features return a structured error.
 
-**Rationale:** Scheduling providers differ significantly in feature sets. Calendly does not support holds. CalDAV servers vary in webhook support. Google Calendar supports resource booking; Calendly does not. A protocol that assumes uniform provider capabilities will fail at runtime. Capability discovery lets the LLM host adapt its plan to the provider.
+**Rationale:** Scheduling providers differ significantly in feature sets. Calendly does not support holds. CalDAV servers vary in webhook support. Google Calendar supports resource booking; Calendly does not. A profile that assumes uniform provider capabilities will fail at runtime. Provider feature discovery lets the LLM host adapt its plan to the provider.
 
 **Consequences:**
 - The LLM host should call `get_capabilities` at the start of any scheduling session.
 - The host can skip unsupported steps (e.g., no hold step if `supports_hold` is false).
-- The server returns `CAPABILITY_NOT_SUPPORTED` errors for gated operations, enabling graceful degradation.
+- The server returns `E_CAPABILITY_UNSUPPORTED` errors for gated operations, enabling graceful degradation.
 - New capabilities can be added to the manifest without breaking existing tools.
 
 ---
@@ -64,7 +64,7 @@ The Agentic Scheduling Protocol is built on ten design principles. Each principl
 
 **Principle:** Every error is returned as a structured object with a machine-readable code, a human-readable message, and optional details. Operations never silently degrade or return partial results without indication.
 
-**Rationale:** LLMs are capable of error recovery if they receive structured error information. A machine-readable code enables pattern matching ("if SLOT_UNAVAILABLE, search for alternative slots"). A human-readable message enables the LLM to communicate the issue to the user. Silent degradation — where an operation partially succeeds without indicating the partial nature — is the worst outcome because the LLM cannot reason about it.
+**Rationale:** LLMs are capable of error recovery if they receive structured error information. A machine-readable code enables pattern matching ("if E_SLOT_UNAVAILABLE, search for alternative slots"). A human-readable message enables the LLM to communicate the issue to the user. Silent degradation — where an operation partially succeeds without indicating the partial nature — is the worst outcome because the LLM cannot reason about it.
 
 **Consequences:**
 - All error codes are enumerated in the specification.
@@ -76,9 +76,9 @@ The Agentic Scheduling Protocol is built on ten design principles. Each principl
 
 ## 6. JSCalendar-Native, ICS at the Boundary
 
-**Principle:** The protocol's internal object model is based on JSCalendar (RFC 8984). iCalendar (RFC 5545) is used only at the export boundary (`export_ics` tool).
+**Principle:** The profile's internal object model is based on JSCalendar (RFC 8984). iCalendar (RFC 5545) is used only at the export boundary (`export_ics` tool).
 
-**Rationale:** MCP tool calls exchange JSON. JSCalendar is a JSON format. iCalendar is a line-oriented text format that requires parsing. Using JSCalendar internally eliminates format conversion within the protocol, reduces parsing errors, and aligns with the JSON-native nature of LLM tool interfaces. ICS export is provided for interoperability with traditional calendar applications.
+**Rationale:** MCP tool calls exchange JSON. JSCalendar is a JSON format. iCalendar is a line-oriented text format that requires parsing. Using JSCalendar internally eliminates format conversion within the profile, reduces parsing errors, and aligns with the JSON-native nature of LLM tool interfaces. ICS export is provided for interoperability with traditional calendar applications.
 
 **Consequences:**
 - Slot, BookingIntent, and BookingConfirmation objects use JSCalendar-aligned field names and types.
@@ -133,10 +133,10 @@ The Agentic Scheduling Protocol is built on ten design principles. Each principl
 
 **Principle:** ASP handles scheduling operations only. Payment processing is explicitly out of scope.
 
-**Rationale:** This constraint serves two purposes. First, it keeps the protocol focused: scheduling and payment are different domains with different failure modes, regulatory requirements, and trust models. Second, it ensures compliance with ChatGPT App policies, which restrict commerce for digital services. By excluding payment, ASP avoids the policy complications that would arise from handling financial transactions.
+**Rationale:** This constraint keeps the profile focused: scheduling and payment are different domains with different failure modes, regulatory requirements, and trust models. By excluding payment, ASP avoids the policy and security complications that would arise from handling financial transactions.
 
 **Consequences:**
 - The `supports_deposit` capability flag exists for discovery but ASP does not define payment operations.
-- Paid booking scenarios require a handoff to ACP or another payment protocol.
-- The protocol is simpler and more likely to pass ChatGPT App review.
+- Paid booking scenarios require a handoff to ACP or another compliant checkout/payment flow.
+- The profile is simpler and easier to review because it does not execute payments.
 - Providers that require payment at booking time need a two-phase flow: ASP for scheduling, ACP for payment.

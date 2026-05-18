@@ -1,4 +1,4 @@
-# Agentic Scheduling Protocol (ASP)
+# Agentic Scheduling Profile (ASP)
 
 **A vendor-neutral MCP profile for agentic appointment booking.**
 
@@ -9,17 +9,18 @@
 
 ## Why This Exists
 
-Existing calendar standards (iCalendar, iTIP, CalDAV, JSCalendar) solve event **representation** and parts of **scheduling**, but none address **agentic orchestration** inside LLM hosts like ChatGPT. Meanwhile, commerce has the [Agentic Commerce Protocol (ACP)](https://github.com/anthropics/acp) — scheduling has nothing equivalent.
+Existing calendar standards (iCalendar, iTIP, CalDAV, JSCalendar) solve event **representation** and parts of **scheduling**, but none define a shared **agent-facing tool profile** for LLM hosts like ChatGPT, Claude, Copilot, or other MCP clients. Meanwhile, commerce has the [Agentic Commerce Protocol (ACP)](https://developers.openai.com/commerce) from OpenAI and Stripe — scheduling has no equivalent MCP profile.
 
 ASP closes this gap by defining:
 
-1. **MCP as the transport layer** — OpenAI has positioned MCP as the standard for ChatGPT Apps. ASP is an MCP profile, not a new protocol.
+1. **MCP as the integration surface** — ASP standardizes MCP tool names, schemas, results, and safety rules. It is a profile on top of MCP, not a new transport protocol.
 2. **JSCalendar as the object model** — JSON-native, machine-readable. iCalendar/ICS remains the import/export boundary only.
 3. **Vendor-neutral tool surface** — One profile that works across Google Calendar, Calendly, CalDAV, and future providers.
 4. **Scheduling, not commerce** — The first shippable surface is Booking + Reschedule + Cancel + Sync. Payment is explicitly out of scope.
-5. **Capability negotiation** — Providers differ. ASP handles this gracefully via structured capability flags.
+5. **Provider feature discovery** — Providers differ. ASP handles this gracefully via structured provider capability flags, separate from MCP protocol capabilities.
+6. **Safe agentic writes** — Booking, rescheduling, cancellation, and holds require idempotency keys and explicit user confirmation.
 
-## Tool Surface
+## MCP Tool Surface
 
 | Tool | Purpose | Type |
 |------|---------|------|
@@ -31,7 +32,7 @@ ASP closes this gap by defining:
 | `cancel_appointment` | Cancel existing booking | Write |
 | `get_booking` | Fetch a booking by ID | Read |
 | `export_ics` | Export booking as iCalendar/ICS | Read |
-| `subscribe_events` | Subscribe to provider changes | Read |
+| `subscribe_events` | Subscribe to provider changes | Write |
 
 ## Provider Capability Matrix
 
@@ -55,7 +56,7 @@ See [docs/provider-capability-matrix.md](docs/provider-capability-matrix.md) for
 | [0001](rfcs/0001-problem-statement.md) | Problem Statement |
 | [0002](rfcs/0002-object-model.md) | Object Model |
 | [0003](rfcs/0003-mcp-tool-profile.md) | MCP Tool Profile |
-| [0004](rfcs/0004-capability-negotiation.md) | Capability Negotiation |
+| [0004](rfcs/0004-capability-negotiation.md) | Provider Feature Discovery |
 | [0005](rfcs/0005-error-model.md) | Error Model |
 | [0006](rfcs/0006-security-and-auth.md) | Security and Authorization |
 
@@ -77,7 +78,7 @@ The reference server uses a `MockAdapter` that returns deterministic example res
 
 ## Non-Goals
 
-- **No payment processing.** ChatGPT App policy currently disallows commerce for digital services. ASP is scheduling infrastructure.
+- **No payment processing.** ASP is scheduling infrastructure. Paid bookings should hand off to ACP or an external checkout/payment flow instead of embedding payment semantics in ASP.
 - **No single-provider lock-in.** Calendly-only is already solved (Calendly runs its own MCP server). The value is unification.
 - **No identity provider.** ASP delegates authentication to OAuth 2.1 + PKCE. It does not manage user identity.
 - **No scheduling policy AI.** ASP does not decide "the best time for 5 people." It provides the tools; the LLM host provides the intelligence.
@@ -97,9 +98,11 @@ docs/               Design docs, comparisons, roadmap
 
 ## Related Work
 
-- [Agentic Commerce Protocol (ACP)](https://github.com/anthropics/acp) — Commerce equivalent; complementary to ASP
-- [Calendly MCP Server](https://www.calendly.com) — Single-provider MCP; ASP aims to unify across providers
-- [Model Context Protocol (MCP)](https://modelcontextprotocol.io) — The transport layer ASP builds on
+- [Model Context Protocol (MCP)](https://modelcontextprotocol.io) — The open protocol ASP profiles
+- [MCP Apps](https://modelcontextprotocol.io/docs/extensions/apps) — Optional interactive UI extension for MCP tools
+- [OpenAI Apps SDK](https://developers.openai.com/apps-sdk) — ChatGPT app framework built on MCP
+- [Agentic Commerce Protocol (ACP)](https://developers.openai.com/commerce) — Commerce and checkout standard from OpenAI and Stripe; complementary to ASP for paid bookings
+- [Calendly MCP Server](https://developer.calendly.com/calendly-mcp-server) — Single-provider MCP server; ASP aims to unify across providers
 
 ## Contributing
 

@@ -203,7 +203,7 @@ ASP servers SHOULD maintain an audit trail of all write operations.
 1. **What to log.**  Each audit log entry SHOULD include:
    - Timestamp (UTC ISO 8601).
    - Tool name.
-   - `client_intent_id`.
+   - `clientIntentId` for booking lifecycle writes, when present.
    - `providerId`.
    - Operation result (success, error code).
    - Authenticated user identifier (opaque id, NOT email).
@@ -423,7 +423,7 @@ key threats addressed are:
    transit.
 
 5. **Replay attacks.**  Mitigated by idempotency keys
-   (`client_intent_id`) and refresh token rotation.
+   (`clientIntentId`) and refresh token rotation.
 
 6. **Man-in-the-middle attacks.**  Mitigated by mandatory TLS
    1.2+ with certificate validation.

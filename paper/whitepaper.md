@@ -1,20 +1,20 @@
-# Agentic Scheduling Protocol: A Vendor-Neutral MCP Profile for Appointment Booking in LLM Hosts
+# Agentic Scheduling Profile: A Vendor-Neutral MCP Profile for Appointment Booking in LLM Hosts
 
 ## Abstract
 
-Appointment scheduling remains fragmented across providers: Google Calendar, Calendly, CalDAV servers, and proprietary platforms each expose incompatible APIs. Large language model (LLM) hosts such as ChatGPT and Claude Desktop increasingly serve as agentic interfaces through which users coordinate real-world actions, yet no unified protocol exists for agentic appointment booking. We propose the Agentic Scheduling Protocol (ASP), a Model Context Protocol (MCP) profile that provides a canonical tool surface for scheduling operations. ASP builds on JSCalendar (RFC 8984) for its object model and MCP for transport. We define nine tools spanning capability discovery, availability search, slot holds, booking lifecycle management, calendar export, and event subscriptions. We introduce a capability negotiation mechanism that allows a single client to interoperate with heterogeneous providers, and a structured error model designed for LLM consumption. This paper presents the protocol design, discusses a reference implementation, and evaluates the approach against interoperability, latency, and policy compliance criteria.
+Appointment scheduling remains fragmented across providers: Google Calendar, Calendly, CalDAV servers, and proprietary platforms each expose incompatible APIs. Large language model (LLM) hosts such as ChatGPT and Claude Desktop increasingly serve as agentic interfaces through which users coordinate real-world actions, yet no unified MCP profile exists for agentic appointment booking. We propose the Agentic Scheduling Profile (ASP), a Model Context Protocol (MCP) profile that provides a canonical tool surface for scheduling operations. ASP builds on JSCalendar (RFC 8984) for its object model and MCP for tool discovery and invocation. We define nine tools spanning provider feature discovery, availability search, slot holds, booking lifecycle management, calendar export, and event subscriptions. We introduce a provider feature discovery mechanism that allows a single client to interoperate with heterogeneous providers, and a structured error model designed for LLM consumption. This paper presents the profile design, discusses a reference implementation, and evaluates the approach against interoperability, latency, and review-readiness criteria.
 
 ## 1. Introduction
 
 The emergence of LLM-powered agents has created a new class of human-computer interaction in which users delegate multi-step real-world tasks to conversational AI systems. Scheduling appointments is among the most frequent and highest-value such tasks: it requires querying availability across calendars, negotiating times, creating events, and managing the lifecycle of bookings. Despite the maturity of calendar standards (iCalendar has existed since 1998), no protocol bridges the gap between these standards and the tool-call interfaces that LLM hosts use to interact with external services.
 
-This gap is particularly visible in the ChatGPT ecosystem. OpenAI introduced the Agentic Commerce Protocol (ACP) in collaboration with Shopify to enable product discovery, cart management, and checkout within ChatGPT Apps [7]. ACP demonstrates that domain-specific MCP profiles can successfully mediate between LLM hosts and external services. However, no equivalent exists for scheduling. A user who asks ChatGPT to "find a 30-minute slot with my accountant next week and book it" has no standardized mechanism to fulfill that request across providers.
+This gap is particularly visible in the ChatGPT ecosystem. OpenAI and Stripe introduced the Agentic Commerce Protocol (ACP) to enable agentic product and checkout flows [7]. ACP demonstrates that domain-specific interfaces can successfully mediate between AI agents, users, merchants, and external services. However, no equivalent MCP profile exists for scheduling. A user who asks ChatGPT to "find a 30-minute slot with my accountant next week and book it" has no standardized mechanism to fulfill that request across providers.
 
 The asymmetry is striking: commerce has a protocol; scheduling does not. This is not because scheduling is less important or less complex — in many ways, scheduling is more constrained, involving temporal logic, timezone arithmetic, multi-party coordination, and provider-specific feature sets. The gap is not in calendar standards themselves, which are comprehensive, but in LLM-native orchestration: the ability for an LLM host to discover what a scheduling provider can do, search for availability, and execute booking operations through structured tool calls.
 
-ASP addresses this gap. It is an MCP profile — a set of tool definitions, an object model, and a capability negotiation mechanism — that any MCP-compliant host can use to interact with any ASP-compliant scheduling server. The protocol is provider-agnostic: the same nine tools work whether the backend is Google Calendar, Calendly, a CalDAV server, or a proprietary scheduling system. Provider-specific features are surfaced through a capability manifest that the client queries before performing operations.
+ASP addresses this gap. It is an MCP profile — a set of tool definitions, an object model, and a provider feature discovery mechanism — that any MCP-compliant host can use to interact with any ASP-compliant scheduling server. The profile is provider-agnostic: the same nine tools work whether the backend is Google Calendar, Calendly, a CalDAV server, or a proprietary scheduling system. Provider-specific features are surfaced through a capability manifest that the client queries before performing operations.
 
-This paper describes the protocol design, situates it relative to existing calendar standards and agentic protocols, presents a reference implementation approach, and discusses evaluation criteria and limitations.
+This paper describes the profile design, situates it relative to existing calendar standards and agentic interfaces, presents a reference implementation approach, and discusses evaluation criteria and limitations.
 
 ## 2. Background
 
@@ -32,11 +32,11 @@ This paper describes the protocol design, situates it relative to existing calen
 
 ### 2.2 Agentic Protocols
 
-**Model Context Protocol (MCP)** [6] is an open protocol, originally developed by Anthropic, for connecting LLM hosts to external tools and data sources. MCP defines a transport layer (stdio, SSE, HTTP) and a tool-call interface through which hosts can invoke server-side operations. MCP is tool-agnostic: it provides the plumbing but not the semantics. A "scheduling MCP server" could expose any tool surface; without a profile standard, every implementation invents its own.
+**Model Context Protocol (MCP)** [6] is an open protocol, originally developed by Anthropic, for connecting LLM hosts to external tools and data sources. MCP defines transports and a tool-call interface through which hosts can invoke server-side operations. MCP is tool-agnostic: it provides the plumbing but not the semantics. A "scheduling MCP server" could expose any tool surface; without a profile standard, every implementation invents its own.
 
-**Agentic Commerce Protocol (ACP)** [7], developed by Shopify, is an MCP profile for commerce. ACP defines tools for product search, cart management, checkout, and order tracking. It demonstrates the viability of domain-specific MCP profiles and establishes a pattern that ASP follows: a fixed set of tools with well-defined input/output schemas, capability negotiation, and structured errors.
+**Agentic Commerce Protocol (ACP)** [7], introduced by OpenAI and Stripe, defines commerce and checkout infrastructure for agentic commerce. ACP is complementary to ASP: it addresses products, checkout, delegated payment, and order lifecycle, while ASP addresses scheduling. It demonstrates the need for domain-specific agent interfaces with well-defined schemas, discovery, and structured errors.
 
-TODO(expand): discuss OpenAI's ChatGPT Apps platform and how MCP integration works in that context.
+OpenAI's Apps SDK uses MCP servers as the app integration point and can add interactive UI through MCP Apps resources. This makes ASP directly applicable to ChatGPT Apps while remaining usable by any MCP-capable host.
 
 ### 2.3 Existing Scheduling Integrations
 
@@ -58,9 +58,9 @@ An LLM host performing scheduling on behalf of a user needs to:
 
 5. **Interoperate across providers** using a single tool surface. The user should be able to say "book with Dr. Mueller on Calendly" and "add a team meeting on Google Calendar" in the same conversation, using the same tools.
 
-None of the existing standards provide all five capabilities in a tool-call-native format. iCalendar provides the data model but not the API. CalDAV provides an API but not in a tool-call-friendly form. iTIP provides scheduling semantics but assumes email transport. JSCalendar provides a JSON object model but no protocol. MCP provides the transport but no scheduling semantics. ACP demonstrates the profile pattern but addresses commerce, not scheduling.
+None of the existing standards provide all five capabilities in a tool-call-native format. iCalendar provides the data model but not the API. CalDAV provides an API but not in a tool-call-friendly form. iTIP provides scheduling semantics but assumes email transport. JSCalendar provides a JSON object model but no protocol. MCP provides tool discovery and invocation but no scheduling semantics. ACP demonstrates a domain-specific pattern for commerce but addresses commerce, not scheduling.
 
-ASP fills this gap by combining JSCalendar's object model, MCP's transport, and a purpose-built tool surface designed for LLM-driven scheduling workflows.
+ASP fills this gap by combining JSCalendar's object model, MCP's tool surface, and scheduling-specific semantics designed for LLM-driven scheduling workflows.
 
 ## 4. Design
 
@@ -72,9 +72,9 @@ ASP follows ten design principles, documented in full in the project's design-pr
 
 **Reads and writes strictly separated.** Read operations (`get_capabilities`, `search_availability`, `get_booking`, `export_ics`) never modify state. Write operations (`hold_slot`, `book_appointment`, `reschedule_appointment`, `cancel_appointment`, `subscribe_events`) always modify state. This separation enables the MCP host to implement user confirmation prompts before writes without needing to analyze tool semantics.
 
-**Idempotent writes via client_intent_id.** Every write operation accepts a `client_intent_id` — a client-generated idempotency key. If the same key is submitted twice, the server returns the existing result rather than creating a duplicate. This is essential in agentic systems where tool calls may be retried due to network errors, LLM re-planning, or user interaction loops.
+**Idempotent booking writes via clientIntentId.** Every booking lifecycle write operation accepts a `clientIntentId` — a client-generated idempotency key. If the same key is submitted twice, the server returns the existing result rather than creating a duplicate. This is essential in agentic systems where tool calls may be retried due to network errors, LLM re-planning, or user interaction loops.
 
-**Capability-gated operations.** Before using provider-specific features (holds, reschedule, webhooks), the client must call `get_capabilities` to discover what the provider supports. The server returns a structured capability manifest. Operations that require unsupported capabilities return a `CAPABILITY_NOT_SUPPORTED` error.
+**Provider-feature-gated operations.** Before using provider-specific features (holds, reschedule, webhooks), the client must call `get_capabilities` to discover what the provider supports. The server returns a structured provider capability manifest. Operations that require unsupported provider features return an `E_CAPABILITY_UNSUPPORTED` error.
 
 **Structured errors, never silent degradation.** Every error is returned as a structured object with a machine-readable code, a human-readable message, and optional details. The LLM can use the error code to decide on recovery strategies (e.g., retry, fall back to a different provider, ask the user for input).
 
@@ -107,9 +107,9 @@ ASP defines nine tools:
 
 The typical booking flow is: `get_capabilities` -> `search_availability` -> (optionally) `hold_slot` -> `book_appointment`. The LLM host presents availability to the user, obtains confirmation, and then books. Rescheduling and cancellation are independent operations on existing bookings.
 
-### 4.4 Capability Negotiation
+### 4.4 Provider Feature Discovery
 
-Capability negotiation is the mechanism by which a client discovers what a specific provider supports. The `get_capabilities` tool returns a `ProviderCapabilities` object with boolean flags:
+Provider feature discovery is the mechanism by which a client discovers what a specific provider supports. The `get_capabilities` tool returns a `ProviderCapabilities` object with boolean flags:
 
 ```json
 {
@@ -135,7 +135,7 @@ ASP uses a structured error format:
 ```json
 {
   "error": {
-    "code": "SLOT_UNAVAILABLE",
+    "code": "E_SLOT_UNAVAILABLE",
     "message": "The requested slot has been booked by another party.",
     "details": {
       "slotId": "slot-goog-001",
@@ -149,7 +149,7 @@ Error codes are enumerated and documented. The LLM can pattern-match on the code
 
 ### 4.6 Idempotency
 
-Every write operation accepts a `clientIntentId` parameter. The server maintains a mapping from `clientIntentId` to the result of the operation. If a write with an already-seen `clientIntentId` is received, the server returns the stored result with no side effects. This guarantees at-most-once semantics for booking operations, which is critical in an agentic context where:
+Every booking lifecycle write operation accepts a `clientIntentId` parameter. The server maintains a mapping from `clientIntentId` to the result of the operation. If a booking write with an already-seen `clientIntentId` is received, the server returns the stored result with no side effects. This guarantees at-most-once semantics for booking operations, which is critical in an agentic context where:
 
 - The LLM may retry a tool call after a timeout
 - The user may re-confirm an action that was already executed
@@ -201,13 +201,13 @@ What percentage of each provider's scheduling features are exposed through the A
 
 ### 6.4 Review Readiness
 
-For the ChatGPT App deployment path, the ASP implementation must comply with OpenAI's App review policies. The key constraint is the commerce restriction: ChatGPT Apps must not facilitate commerce for digital services. ASP is designed to be compliant because it handles scheduling, not payment. However, review readiness also includes proper error handling, rate limiting, and user consent flows — all of which must be validated.
+For the ChatGPT App deployment path, the ASP implementation must comply with current OpenAI App review requirements. ASP is designed to be easier to review because it handles scheduling, not payment. Review readiness also includes proper error handling, rate limiting, data minimization, authentication, and user consent flows — all of which must be validated.
 
 ## 7. Related Work
 
 ### 7.1 Agentic Commerce Protocol (ACP)
 
-ACP [7], developed by Shopify, is the most direct precedent for ASP. Both are MCP profiles that define domain-specific tool surfaces. ACP addresses commerce (product search, cart management, checkout); ASP addresses scheduling. The protocols are complementary: a booking that requires payment (e.g., a paid consultation) could use ASP for the scheduling step and hand off to ACP for the payment step. ASP's design draws heavily on ACP's architectural patterns, particularly capability negotiation and structured error handling.
+ACP [7], introduced by OpenAI and Stripe, is the most direct commerce precedent for ASP. ACP addresses commerce (product discovery, checkout, delegated payment, order lifecycle); ASP addresses scheduling. The efforts are complementary: a booking that requires payment (e.g., a paid consultation) could use ASP for the scheduling step and hand off to ACP for the payment step. ASP's design follows the same broad architectural lesson: agent-facing domains need well-defined objects, discovery, and structured errors.
 
 ### 7.2 Calendly MCP Server
 
@@ -227,7 +227,7 @@ TODO(expand): discuss other scheduling platforms (Acuity, Doodle, Microsoft Book
 
 ### 8.1 Payment Out of Scope
 
-ASP explicitly excludes payment processing. Many scheduling scenarios involve payment (paid consultations, deposit-required bookings, cancellation fees). ASP handles the scheduling mechanics but does not model or execute financial transactions. This is a deliberate design choice driven by both scope management and ChatGPT App policy compliance. For paid bookings, the intended approach is to hand off to ACP or a payment-specific protocol after the scheduling step completes.
+ASP explicitly excludes payment processing. Many scheduling scenarios involve payment (paid consultations, deposit-required bookings, cancellation fees). ASP handles the scheduling mechanics but does not model or execute financial transactions. This is a deliberate design choice driven by scope management, security, and review simplicity. For paid bookings, the intended approach is to hand off to ACP or another compliant checkout/payment flow after the scheduling step completes.
 
 ### 8.2 Identity and Authorization
 
@@ -287,10 +287,10 @@ If ASP achieves adoption, submitting it as an IETF Internet-Draft could formaliz
 
 [5] R. Stepanek, M. Douglass, "JSCalendar: A JSON Representation of Calendar Data," RFC 8984, July 2021.
 
-[6] Anthropic, "Model Context Protocol Specification," 2024. Available: https://modelcontextprotocol.io/ TODO(verify URL)
+[6] Anthropic, "Model Context Protocol Specification," 2025. Available: https://modelcontextprotocol.io/
 
-[7] Shopify, "Agentic Commerce Protocol," 2025. Available: TODO(verify URL)
+[7] OpenAI and Stripe, "Agentic Commerce Protocol," 2025. Available: https://agentic-commerce-protocol.com/
 
-[8] Calendly, "Calendly API and MCP Server Documentation." Available: TODO(verify URL)
+[8] Calendly, "Calendly MCP Server Documentation." Available: https://developer.calendly.com/calendly-mcp-server
 
-[9] Google, "Google Calendar API Documentation." Available: https://developers.google.com/calendar/api TODO(verify URL)
+[9] Google, "Google Calendar API Documentation." Available: https://developers.google.com/calendar/api

@@ -28,7 +28,7 @@ Everything in this document was deliberately deferred from Phase 1 (specificatio
 - [ ] Integration tests for each adapter (search -> hold -> book -> cancel flow)
 - [ ] Error handling tests (all 9 error codes)
 - [ ] Capability negotiation tests (capability mismatch scenarios)
-- [ ] Idempotency tests (duplicate `client_intent_id` handling)
+- [ ] Idempotency tests (duplicate `clientIntentId` handling)
 
 ### Reference Server Enhancements
 - [ ] Extract tool handlers from `server.ts` into individual modules

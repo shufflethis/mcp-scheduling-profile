@@ -318,10 +318,10 @@ properties for ASP-specific fields.
 }
 ```
 
-### Capabilities
+### ProviderCapabilities
 
-A Capabilities object describes what a provider supports.
-See ASP-0004 for the full specification of capability negotiation.
+A ProviderCapabilities object describes what a provider supports.
+See ASP-0004 for the full specification of provider feature discovery.
 
 #### Fields
 
@@ -339,8 +339,8 @@ See ASP-0004 for the full specification of capability negotiation.
 | supports_ics_export          | boolean | REQUIRED | Provider can export bookings as ICS files. |
 | supports_idempotent_writes   | boolean | REQUIRED | Provider guarantees idempotent write operations. |
 
-All fields are REQUIRED.  Servers MUST declare every flag
-explicitly.  Omission is a protocol violation.
+All feature flags are REQUIRED.  Servers MUST declare every flag
+explicitly.  Omission is a profile violation.
 
 #### Example
 
@@ -454,7 +454,7 @@ values and MUST NOT execute code embedded in metadata fields.
   Representation of Calendar Data", RFC 8984, July 2021.
 - [ASP-0001] ASP Working Group, "Problem Statement — Agentic
   Scheduling in the MCP Era", ASP-0001, 2026.
-- [ASP-0004] ASP Working Group, "Capability Negotiation",
+- [ASP-0004] ASP Working Group, "Provider Feature Discovery",
   ASP-0004, 2026.
 - [ASP-0005] ASP Working Group, "Error Model", ASP-0005, 2026.
 - [ASP-0006] ASP Working Group, "Security and Authorization",

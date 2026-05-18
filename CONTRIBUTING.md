@@ -1,4 +1,4 @@
-# Contributing to the Agentic Scheduling Protocol
+# Contributing to the Agentic Scheduling Profile
 
 Thank you for your interest in contributing to ASP! This document explains the
 contribution process and guidelines.
@@ -20,7 +20,7 @@ Please read it before participating.
 
 ## RFC Process for Spec Changes
 
-Changes to the protocol specification **must** go through the RFC process:
+Changes to the profile specification **must** go through the RFC process:
 
 1. **Open an issue** describing the problem or feature you want to address.
 2. **Fork the repo** and create a new RFC document under `rfcs/` using the

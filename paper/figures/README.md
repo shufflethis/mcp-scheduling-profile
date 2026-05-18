@@ -7,7 +7,7 @@ Diagrams needed for the whitepaper. No images created yet — to be produced in 
 ### 1. Architecture Overview
 High-level system architecture showing the data flow:
 ```
-LLM Host -> MCP Transport -> ASP MCP Server -> Adapter Registry -> Provider Adapters -> Provider APIs
+LLM Host -> MCP tools -> ASP MCP Server -> Adapter Registry -> Provider Adapters -> Provider APIs
 ```
 Should show multiple LLM hosts (ChatGPT, Claude Desktop) on the left and multiple providers (Google Calendar, Calendly, CalDAV) on the right, with the ASP server as the mediating layer.
 
@@ -30,13 +30,13 @@ User -> LLM Host -> ASP Server -> Provider
   |  "here's your booking"          |
 ```
 
-### 3. Capability Negotiation Flow
+### 3. Provider Feature Discovery Flow
 Flowchart showing the decision tree:
 - Call get_capabilities
 - Check supports_hold -> if yes, offer hold step
 - Check supports_reschedule -> if yes, enable reschedule in UI
 - Check supports_webhooks -> if yes, offer subscription
-- Fallback behavior for unsupported capabilities
+- Fallback behavior for unsupported provider features
 
 ### 4. Object Model Relationships
 Entity-relationship diagram showing:
